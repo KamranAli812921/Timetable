@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Donkey's Timetable
 
-## Getting Started
+A multi-user timetable app. Each user creates one or more named timetables shown
+as a month calendar; clicking a date lets them add subjects (name, time, optional
+note) for that day, fill in a recurring weekly schedule in bulk, and download a
+single day as a PDF. An admin account can view every user's timetables read-only
+and reset passwords.
 
-First, run the development server:
+## Tech stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 14 (App Router), JavaScript
+- Tailwind CSS
+- MongoDB Atlas via Mongoose
+- Custom email/password auth: bcrypt password hashing, JWT in an httpOnly cookie
+  (verified with `jose` so it also works in Edge middleware)
+- `pdfkit` for server-side single-day PDF export
+
+## Local setup
+
+1. Copy `.env.example` to `.env.local` and fill in:
+   - `MONGODB_URI` — a MongoDB Atlas (or any reachable MongoDB) connection string
+   - `JWT_SECRET` — a long random string
+2. Install dependencies and run the dev server:
+   ```bash
+   npm install
+   npm run dev
+   ```
+3. Open http://localhost:3000
+
+## Creating an admin account
+
+The very first account ever signed up (i.e. the first user created when the
+`users` collection is empty) is automatically made an admin. Every account
+after that signs up as a regular user.
+
+To promote a later account to admin manually, set that user's `role` field
+directly in MongoDB:
+
+```js
+db.users.updateOne({ email: "you@example.com" }, { $set: { role: "admin" } })
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment (Render)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+See the project plan for full step-by-step instructions. Summary:
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. Create a free MongoDB Atlas cluster, DB user, and whitelist `0.0.0.0/0`.
+2. Push this repo to GitHub.
+3. On Render: **New → Web Service**, connect the repo.
+   - Build command: `npm install && npm run build`
+   - Start command: `npm start`
+   - Environment variables: `MONGODB_URI`, `JWT_SECRET`, `NODE_VERSION=20`
+4. Deploy. Render auto-redeploys on every push to the connected branch.
